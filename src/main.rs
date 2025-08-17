@@ -1,12 +1,29 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use crate::{gtk::settings_win::AppSettings, logic::global::Global};
+mod cli;
 mod gtk;
 mod logic;
 
 const APPNAME: &str = "ShinCrypt";
 const OLDAPPNAME: &str = "old_GHD_app";
-static SIZE_1MB: usize = 1024 * 1024;
+
+pub mod memory {
+  pub const KB: usize = 1024;
+  pub const MB: usize = 1024 * 1024;
+
+  // Derived constants
+  pub const MB1: usize = 1 * MB;
+  pub const MB4: usize = 4 * MB;
+  pub const MB8: usize = 8 * MB;
+  pub const MB16: usize = 16 * MB;
+  pub const MB32: usize = 32 * MB;
+  pub const MB64: usize = 64 * MB;
+  pub const MB128: usize = 128 * MB;
+  pub const MB256: usize = 256 * MB;
+  pub const MB512: usize = 512 * MB;
+  pub const GB1: usize = 1024 * MB;
+}
 
 #[derive(Clone, Default)]
 pub struct AppState {
@@ -63,6 +80,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Global::del_path(old_app).unwrap()
   }
 
-  gtk::gtk_ui::gtk_ui();
+  if !cli::cli() {
+    unsafe { winapi::um::wincon::FreeConsole() };
+    gtk::gtk_ui::gtk_ui();
+  }
+
   Ok(())
 }

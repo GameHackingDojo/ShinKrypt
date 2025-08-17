@@ -1,13 +1,13 @@
-use crate::{APPNAME, SIZE_1MB, logic::global::FileDir};
+use crate::{APPNAME, logic::global::FileDir, memory::*};
 use argon2::password_hash::PasswordHasher;
 use chacha20::cipher::{KeyIvInit, StreamCipher};
 use std::{io::{BufRead, Read, Write}, u16};
 
-static FILE_HEADER_SIZE: usize = SIZE_1MB; // 1 MB
+static FILE_HEADER_SIZE: usize = MB1; // 1 MB
+// static CHUNK: usize = MB1; // 1 MB
+static CHUNK: usize = MB64;
 
-static FILE_1GB: usize = 1024 * 1024 * 1024; // 1 GB
-static CHUNK: usize = SIZE_1MB; // 1 MB
-// static CHUNK_4KB: usize = 0x1000; // 4 KB
+static BENCHMARK_FILE_1GB: usize = GB1; // 1 GB
 
 static NONCE_SIZE: usize = 24;
 static ENCRYPTION_EXT: &str = "snc";
@@ -255,7 +255,7 @@ impl FileHeader {
     // Write path (2 bytes)
     let path_end = pos + path.len();
     file_header[pos..path_end].copy_from_slice(path);
-    pos += path.len();
+    // pos += path.len();   //uncomment if something was to be added
 
     file_header
   }
@@ -314,7 +314,7 @@ impl FileHeader {
     };
 
     let path = std::path::PathBuf::from(path_str);
-    pos += path_len;
+    // pos += path_len;   //uncomment if something was to be added
 
     let encryption = EncMethod::from_u16(encryption_num).ok_or("Invalid encryption method")?;
 
@@ -331,6 +331,7 @@ impl FileHeader {
   }
 }
 
+#[derive(Clone, Debug, Default)]
 pub struct ShinCrypt {
   input_path: std::path::PathBuf,
   output_dir: std::path::PathBuf,
@@ -347,6 +348,16 @@ impl ShinCrypt {
       progress,
     };
   }
+
+  pub fn set_input_path(&mut self, path: impl AsRef<std::path::Path>) { self.input_path = path.as_ref().to_path_buf() }
+  pub fn set_output_dir(&mut self, path: impl AsRef<std::path::Path>) { self.output_dir = path.as_ref().to_path_buf() }
+  pub fn set_password(&mut self, password: impl AsRef<str>) { self.password = password.as_ref().to_string() }
+  pub fn set_progres(&mut self, progress: Option<crossbeam::channel::Sender<f64>>) { self.progress = progress }
+
+  pub fn get_input_path(&self) -> std::path::PathBuf { self.input_path.clone() }
+  pub fn get_output_dir(&self) -> std::path::PathBuf { self.output_dir.clone() }
+  pub fn get_password(&self) -> String { self.password.clone() }
+  pub fn get_progres(&self) -> Option<crossbeam::channel::Sender<f64>> { self.progress.clone() }
 
   fn get_salt(salt: Option<String>) -> argon2::password_hash::SaltString { if salt.is_some() { argon2::password_hash::SaltString::from_b64(salt.unwrap().trim()).unwrap() } else { argon2::password_hash::SaltString::generate(&mut argon2::password_hash::rand_core::OsRng) } }
 
@@ -553,7 +564,7 @@ impl ShinCrypt {
     Ok(())
   }
 
-  pub fn benchmark() -> Result<(std::time::Duration, std::time::Duration), String> {
+  pub fn benchmark(&self, dur: crossbeam::channel::Sender<(std::time::Duration, std::time::Duration)>) -> Result<(std::time::Duration, std::time::Duration), String> {
     let path = match Self::gen_file() {
       Ok(v) => v,
       Err(e) => return Err(e),
@@ -564,7 +575,7 @@ impl ShinCrypt {
     let encrypt_time = {
       let time = std::time::Instant::now();
 
-      let shincrypt = ShinCrypt::new(&path, output_dir, APPNAME, None);
+      let shincrypt = ShinCrypt::new(&path, output_dir, APPNAME, self.progress.clone());
       if let Err(e) = shincrypt.encrypt_file() {
         println!("{}", e);
       };
@@ -578,13 +589,15 @@ impl ShinCrypt {
     let decrypt_time = {
       let time = std::time::Instant::now();
 
-      let shincrypt = ShinCrypt::new(input_path, output_dir, APPNAME, None);
+      let shincrypt = ShinCrypt::new(input_path, output_dir, APPNAME, self.progress.clone());
       if let Err(e) = shincrypt.decrypt_file() {
         println!("{}", e);
       };
 
       time.elapsed()
     };
+
+    dur.send((encrypt_time, decrypt_time)).unwrap();
 
     std::fs::remove_dir_all(output_dir).unwrap();
     Ok((encrypt_time, decrypt_time))
@@ -599,7 +612,7 @@ impl ShinCrypt {
     let file = std::fs::File::create(file_path.clone()).unwrap();
     let mut file_buf = std::io::BufWriter::new(file);
 
-    let mut buffer = vec![0u8; FILE_1GB];
+    let mut buffer = vec![0u8; BENCHMARK_FILE_1GB];
 
     getrandom::fill(&mut buffer).unwrap();
     file_buf.write_all(&buffer).unwrap();

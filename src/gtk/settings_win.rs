@@ -1,5 +1,6 @@
-use crate::{AppState, SIZE_1MB, gtk::{about_win::about_win, gtk_ui::MarginAll}, logic::{encryption::ShinCrypt, global::{GTKhelper, Global}}};
-use gtk4::prelude::*;
+use crate::{AppState, gtk::{about_win::about_win, gtk_ui::MarginAll}, logic::{encryption::ShinCrypt, global::{GTKhelper, Global}}, memory::MB64};
+use gtk::prelude::*;
+use gtk4 as gtk;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -47,7 +48,7 @@ impl AppSettings {
 }
 
 /// Show the settings dialog as a child of `parent_win`.
-pub fn settings_ui(window: &gtk4::ApplicationWindow, aps: Arc<RwLock<AppState>>) {
+pub fn settings_ui(window: &gtk4::ApplicationWindow, aps: Arc<RwLock<AppState>>, bench_prog: crossbeam::channel::Sender<f64>) {
   let consts = aps.read().consts.clone();
 
   // Build window
@@ -68,7 +69,7 @@ pub fn settings_ui(window: &gtk4::ApplicationWindow, aps: Arc<RwLock<AppState>>)
       gtk4::Settings::default().expect("Failed to get Settings").set_gtk_application_prefer_dark_theme(cb.is_active());
       aps_c.read().settings.export().unwrap();
     });
-    grid.attach(&dark_mode_cb, 0, 0, 2, 1);
+    grid.attach(&dark_mode_cb, 0, 0, 1, 1);
   }
 
   // Remove source file checkbox
@@ -80,7 +81,7 @@ pub fn settings_ui(window: &gtk4::ApplicationWindow, aps: Arc<RwLock<AppState>>)
       aps_c.write().settings.remove_org = cb.is_active();
       aps_c.read().settings.export().unwrap();
     });
-    grid.attach(&remove_cb, 0, 1, 2, 1);
+    grid.attach(&remove_cb, 0, 1, 1, 1);
   }
 
   // Smae directory output checkbox
@@ -92,18 +93,27 @@ pub fn settings_ui(window: &gtk4::ApplicationWindow, aps: Arc<RwLock<AppState>>)
       aps_c.write().settings.same_dir = cb.is_active();
       aps_c.read().settings.export().unwrap();
     });
-    grid.attach(&same_dir_cb, 0, 2, 2, 1);
+    grid.attach(&same_dir_cb, 0, 2, 1, 1);
   }
 
-  {
-    let window_c = window.clone();
+  let (b_res_s, b_res_r) = crossbeam::channel::unbounded::<(std::time::Duration, std::time::Duration)>();
+  let window_c = window.clone();
+  let bench_prog_c = bench_prog.clone();
 
+  {
     let benchmark_btn = gtk4::Button::with_label("Benchmark 🚝");
     benchmark_btn.set_hexpand(true);
+    // benchmark_btn.set_sensitive(false);
     benchmark_btn.connect_clicked(move |_| {
-      match std::thread::Builder::new().stack_size(SIZE_1MB * 4).spawn(|| ShinCrypt::benchmark()).unwrap().join().unwrap() {
-        Ok((e_time, d_time)) => GTKhelper::message_box(&window_c, "Done", format!("Encrypted 1GB:\n\nTime: {}\nSpeed: {:.2} MB/s\n\nDecrypted 1GB:\n\nTime: {}\nSpeed: {:.2} MB/s\n", Global::format_duration(e_time), Global::calculate_speed(1.0, e_time), Global::format_duration(d_time), Global::calculate_speed(1.0, d_time)), None),
-        Err(e) => GTKhelper::message_box(&window_c, "Error", e, None),
+      GTKhelper::message_box(&window_c, "Please wait", "Benchmarking has started, the progress bar will be filled two times then the results will appear once the test is done.", None);
+
+      let b_res_s_c = b_res_s.clone();
+      let mut shin_crypt = ShinCrypt::default();
+      shin_crypt.set_progres(Some(bench_prog_c.clone()));
+
+      match std::thread::Builder::new().stack_size(MB64).spawn(move || shin_crypt.benchmark(b_res_s_c)) {
+        Ok(_) => (),
+        Err(e) => GTKhelper::message_box(&window_c, "Error", e.to_string(), None),
       };
     });
     grid.attach(&benchmark_btn, 0, 3, 1, 1);
@@ -118,8 +128,19 @@ pub fn settings_ui(window: &gtk4::ApplicationWindow, aps: Arc<RwLock<AppState>>)
     about_btn.connect_clicked(move |_| {
       about_win(&window_c, aps_c.clone());
     });
-    grid.attach(&about_btn, 1, 3, 1, 1);
+    grid.attach(&about_btn, 0, 4, 1, 1);
   }
+
+  let window_c = window.clone();
+
+  // Use glib::source::idle_add to update GUI from main thread
+  gtk::glib::source::idle_add_local(move || {
+    if let Ok((e_time, d_time)) = b_res_r.try_recv() {
+      GTKhelper::message_box(&window_c, "Done", format!("Encrypted 1GB:\n\nTime: {}\nSpeed: {:.2} MB/s\n\nDecrypted 1GB:\n\nTime: {}\nSpeed: {:.2} MB/s\n", Global::format_duration(e_time), Global::calculate_speed(1.0, e_time), Global::format_duration(d_time), Global::calculate_speed(1.0, d_time)), None)
+    };
+
+    gtk::glib::ControlFlow::Continue
+  });
 
   settings_win.set_child(Some(&grid));
   settings_win.present();

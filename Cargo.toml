@@ -1,6 +1,6 @@
 [package]
 name = "ShinCrypt"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2024"
 authors = ["Ken Masters <GameHackingDojo@gmail.com>"]
 description = "Secure, fast and free cross platform encryption tool. Uses XChaCha20 not AES as NSA (Nasty Surveillance Agency) recommends"
@@ -30,12 +30,20 @@ webbrowser = "1.0"
 # GUI
 gtk4 = { version = "0.10", features = ["v4_18"] }
 
+# CLI
+clap = { version = "4", features = ["derive"] }
+
 # Encryption
 chacha20 = "0.9"
 argon2 = { version = "0.5", features = ["std"] }
 
 [target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3", features = ["dwmapi", "winuser"] }
+winapi = { version = "0.3", features = [
+  "dwmapi",
+  "winuser",
+  "consoleapi",
+  "wincon",
+] }
 gdk4-win32 = "0.10"
 
 

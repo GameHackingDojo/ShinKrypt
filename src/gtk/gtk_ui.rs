@@ -1,4 +1,4 @@
-use crate::{AppState, gtk::settings_win::{AppSettings, settings_ui}, logic::{encryption::ShinCrypt, global::{GTKhelper, Global}}};
+use crate::{AppState, gtk::settings_win::{AppSettings, settings_ui}, logic::{encryption::ShinCrypt, global::{GTKhelper, Global}}, memory::MB64};
 use gtk::prelude::*;
 use gtk4 as gtk;
 use parking_lot::RwLock;
@@ -142,11 +142,13 @@ pub fn gtk_ui() -> gtk::glib::ExitCode {
     let aps_c = aps.clone();
     let window_c = window.clone();
 
+    let (bench_prog_s, bench_prog_r) = crossbeam::channel::unbounded::<f64>();
+
     // Row 2: (empty cell) + Settings button
     let settings_btn = gtk::Button::with_label("⚙️");
     settings_btn.set_tooltip_text(Some("Settings"));
     settings_btn.connect_clicked(move |_| {
-      settings_ui(&window_c, aps_c.clone());
+      settings_ui(&window_c, aps_c.clone(), bench_prog_s.clone());
     });
 
     let encrypt_btn = gtk::Button::with_label("Encrypt 🔒");
@@ -210,10 +212,13 @@ pub fn gtk_ui() -> gtk::glib::ExitCode {
 
       let shincrypt = ShinCrypt::new(input_path_c.clone(), output_path_c.clone(), password_v.clone(), Some(progress_s_c_c.clone()));
 
-      std::thread::spawn(move || match shincrypt.encrypt_file() {
-        Ok(_) => e_res_s_c_c.send("Success".to_string()),
-        Err(e) => e_res_s_c_c.send(e),
-      });
+      std::thread::Builder::new()
+        .stack_size(MB64)
+        .spawn(move || match shincrypt.encrypt_file() {
+          Ok(_) => e_res_s_c_c.send("Success".to_string()),
+          Err(e) => e_res_s_c_c.send(e),
+        })
+        .unwrap();
 
       password_c.set_text("");
     });
@@ -268,10 +273,13 @@ pub fn gtk_ui() -> gtk::glib::ExitCode {
 
       let shincrypt = ShinCrypt::new(input_path_c.clone(), output_path_c.clone(), password_v.clone(), Some(progress_s_c_c.clone()));
 
-      std::thread::spawn(move || match shincrypt.decrypt_file() {
-        Ok(_) => d_res_s_c_c.send("Success".to_string()),
-        Err(e) => d_res_s_c_c.send(e),
-      });
+      std::thread::Builder::new()
+        .stack_size(MB64)
+        .spawn(move || match shincrypt.decrypt_file() {
+          Ok(_) => d_res_s_c_c.send("Success".to_string()),
+          Err(e) => d_res_s_c_c.send(e),
+        })
+        .unwrap();
 
       password_c.set_text("");
     });
@@ -295,6 +303,10 @@ pub fn gtk_ui() -> gtk::glib::ExitCode {
       }
 
       if let Ok(prog) = progress_r.try_recv() {
+        progress_c.set_fraction(prog);
+      }
+
+      if let Ok(prog) = bench_prog_r.try_recv() {
         progress_c.set_fraction(prog);
       }
 
