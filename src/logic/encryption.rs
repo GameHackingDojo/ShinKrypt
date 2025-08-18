@@ -349,15 +349,15 @@ impl ShinCrypt {
     };
   }
 
-  pub fn set_input_path(&mut self, path: impl AsRef<std::path::Path>) { self.input_path = path.as_ref().to_path_buf() }
-  pub fn set_output_dir(&mut self, path: impl AsRef<std::path::Path>) { self.output_dir = path.as_ref().to_path_buf() }
-  pub fn set_password(&mut self, password: impl AsRef<str>) { self.password = password.as_ref().to_string() }
+  // pub fn set_input_path(&mut self, path: impl AsRef<std::path::Path>) { self.input_path = path.as_ref().to_path_buf() }
+  // pub fn set_output_dir(&mut self, path: impl AsRef<std::path::Path>) { self.output_dir = path.as_ref().to_path_buf() }
+  // pub fn set_password(&mut self, password: impl AsRef<str>) { self.password = password.as_ref().to_string() }
   pub fn set_progres(&mut self, progress: Option<crossbeam::channel::Sender<f64>>) { self.progress = progress }
 
-  pub fn get_input_path(&self) -> std::path::PathBuf { self.input_path.clone() }
-  pub fn get_output_dir(&self) -> std::path::PathBuf { self.output_dir.clone() }
-  pub fn get_password(&self) -> String { self.password.clone() }
-  pub fn get_progres(&self) -> Option<crossbeam::channel::Sender<f64>> { self.progress.clone() }
+  // pub fn get_input_path(&self) -> std::path::PathBuf { self.input_path.clone() }
+  // pub fn get_output_dir(&self) -> std::path::PathBuf { self.output_dir.clone() }
+  // pub fn get_password(&self) -> String { self.password.clone() }
+  // pub fn get_progres(&self) -> Option<crossbeam::channel::Sender<f64>> { self.progress.clone() }
 
   fn get_salt(salt: Option<String>) -> argon2::password_hash::SaltString { if salt.is_some() { argon2::password_hash::SaltString::from_b64(salt.unwrap().trim()).unwrap() } else { argon2::password_hash::SaltString::generate(&mut argon2::password_hash::rand_core::OsRng) } }
 
@@ -422,20 +422,18 @@ impl ShinCrypt {
     };
 
     // Write salt + nonce with error handling
-    match writeln!(out_file, "{}", salt.as_str()) {
-      Ok(v) => v,
-      Err(e) => return Err(format!("Failed to write salt: {}", e)),
+    if let Err(e) = writeln!(out_file, "{}", salt.as_str()) {
+      return Err(format!("Failed to write salt: {}", e));
     };
-    match out_file.write_all(&nonce) {
-      Ok(v) => v,
-      Err(e) => return Err(format!("Failed to write nonce: {}", e)),
+
+    if let Err(e) = out_file.write_all(&nonce) {
+      return Err(format!("Failed to write nonce: {}", e));
     };
 
     // Write encrypted file info
     cipher.apply_keystream(&mut file_h_vec);
-    match out_file.write_all(&file_h_vec) {
-      Ok(v) => v,
-      Err(e) => return Err(format!("Failed to write file header: {}", e)),
+    if let Err(e) = out_file.write_all(&file_h_vec) {
+      return Err(format!("Failed to write file header: {}", e));
     };
 
     // Create an encrypting writer that wraps the output file
@@ -452,16 +450,12 @@ impl ShinCrypt {
       // Stream the tar with better error handling
       let mut tar_builder = tar::Builder::new(&mut encrypting_writer);
 
-      let result = if self.input_path.is_dir() { tar_builder.append_dir_all(file_name, &self.input_path) } else { tar_builder.append_path_with_name(&self.input_path, file_name) };
-
-      match result {
-        Ok(v) => v,
-        Err(e) => return Err(format!("Failed to add files to archive: {}", e)),
+      if let Err(e) = if self.input_path.is_dir() { tar_builder.append_dir_all(file_name, &self.input_path) } else { tar_builder.append_path_with_name(&self.input_path, file_name) } {
+        return Err(format!("Failed to add files to archive: {}", e));
       };
 
-      match tar_builder.finish() {
-        Ok(v) => v,
-        Err(e) => return Err(format!("Failed to finalize archive: {}", e)),
+      if let Err(e) = tar_builder.finish() {
+        return Err(format!("Failed to finalize archive: {}", e));
       };
     } else {
       // Open input file for reading
@@ -477,9 +471,8 @@ impl ShinCrypt {
       };
     }
 
-    match encrypting_writer.flush() {
-      Ok(v) => v,
-      Err(e) => return Err(format!("Failed to flush writer: {}", e)),
+    if let Err(e) = encrypting_writer.flush() {
+      return Err(format!("Failed to flush writer: {}", e));
     };
 
     Ok(())
@@ -509,9 +502,8 @@ impl ShinCrypt {
 
     // 2. Read nonce (not encrypted)
     let mut nonce = [0u8; 24];
-    match buf_reader.read_exact(&mut nonce) {
-      Ok(v) => v,
-      Err(e) => return Err(format!("Failed to read nonce: {}", e)),
+    if let Err(e) = buf_reader.read_exact(&mut nonce) {
+      return Err(format!("Failed to read nonce: {}", e));
     };
 
     // 3. Prepare cipher
@@ -523,10 +515,10 @@ impl ShinCrypt {
 
     // 5. Read and parse header directly from decrypting reader
     let mut header = [0u8; FILE_HEADER_SIZE];
-    match decrypting_reader.read_exact(&mut header) {
-      Ok(v) => v,
-      Err(e) => return Err(format!("Failed to read file header: {}", e)),
+    if let Err(e) = decrypting_reader.read_exact(&mut header) {
+      return Err(format!("Failed to read file header: {}", e));
     };
+
     let file_h = match FileHeader::from_vec(&header.to_vec()) {
       Ok(v) => v,
       // Err(e) => return Err(format!("Invalid file header: {}", e)),
@@ -542,9 +534,8 @@ impl ShinCrypt {
     if file_h.packed {
       // 7. Extract tar archive (already positioned after header)
       let mut tar_archive = tar::Archive::new(decrypting_reader);
-      match tar_archive.unpack(&self.output_dir) {
-        Ok(v) => v,
-        Err(e) => return Err(format!("Failed to unpack archive: {}", e)),
+      if let Err(e) = tar_archive.unpack(&self.output_dir) {
+        return Err(format!("Failed to unpack archive: {}", e));
       };
     } else {
       // 7. Output the single file (already positioned after header)
@@ -577,7 +568,7 @@ impl ShinCrypt {
 
       let shincrypt = ShinCrypt::new(&path, output_dir, APPNAME, self.progress.clone());
       if let Err(e) = shincrypt.encrypt_file() {
-        println!("{}", e);
+        return Err(e);
       };
 
       time.elapsed()
@@ -591,7 +582,7 @@ impl ShinCrypt {
 
       let shincrypt = ShinCrypt::new(input_path, output_dir, APPNAME, self.progress.clone());
       if let Err(e) = shincrypt.decrypt_file() {
-        println!("{}", e);
+        return Err(e);
       };
 
       time.elapsed()
