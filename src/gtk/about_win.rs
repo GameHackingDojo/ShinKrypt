@@ -52,7 +52,11 @@ pub fn about_win(window: &gtk::ApplicationWindow, aps: Arc<RwLock<AppState>>) {
     Ok(v) => {
       if v {
         match Global::download_latest_version(aps_c.clone()) {
-          Ok(v) => GTKhelper::message_box(&window_c, "Success", format!("{}", v), None),
+          Ok(v) => {
+            GTKhelper::message_box(&window_c, "Success", format!("{}\nThe application will restart in 2 seconds..", v), None);
+            std::thread::sleep(std::time::Duration::from_secs(2));
+            Global::restart_program();
+          }
           Err(e) => GTKhelper::message_box(&window_c, "Error", format!("{}", e), None),
         };
       } else {

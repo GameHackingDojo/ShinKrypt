@@ -170,6 +170,26 @@ impl Global {
     Ok(())
   }
 
+  pub fn restart_program() {
+    use std::{os::windows::process::CommandExt, process::{Command, Stdio}};
+    let exe_path = std::env::current_exe().expect("Failed to get current executable path");
+
+    // On Windows, we need to create a detached process
+    let mut cmd = Command::new(exe_path);
+
+    // Detach the child process so it survives parent termination
+    cmd.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).creation_flags(0x00000008); // CREATE_NEW_PROCESS_GROUP
+
+    match cmd.spawn() {
+      Ok(_) => {
+        // println!("Restarting after 1 second...");
+        // std::thread::sleep(std::time::Duration::from_secs(1));
+        std::process::exit(0);
+      }
+      Err(e) => eprintln!("Failed to restart: {}", e),
+    }
+  }
+
   /// deletes given PathBuf whather it's file or directory
   pub fn del_path(path: std::path::PathBuf) -> Result<(), String> {
     if path.is_file() {
