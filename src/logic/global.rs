@@ -204,6 +204,27 @@ impl Global {
 
     Ok(())
   }
+
+  pub fn is_elevated() -> Result<bool, String> {
+    use winapi::um::{handleapi::CloseHandle, processthreadsapi::{GetCurrentProcess, OpenProcessToken}, securitybaseapi::GetTokenInformation, winnt::{HANDLE, TOKEN_QUERY, TokenElevation}};
+
+    unsafe {
+      let mut h_token: HANDLE = std::ptr::null_mut();
+      if OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut h_token) == 0 {
+        return Err(format!("Failed to open process token: {}", std::io::Error::last_os_error()));
+      }
+
+      let mut elevation: winapi::um::winnt::TOKEN_ELEVATION = std::mem::zeroed();
+      let mut ret_len: u32 = 0;
+      if GetTokenInformation(h_token, TokenElevation, &mut elevation as *mut _ as *mut _, std::mem::size_of::<winapi::um::winnt::TOKEN_ELEVATION>() as u32, &mut ret_len) == 0 {
+        CloseHandle(h_token);
+        return Err(format!("Failed to get token information: {}", std::io::Error::last_os_error()));
+      }
+
+      CloseHandle(h_token);
+      Ok(elevation.TokenIsElevated != 0)
+    }
+  }
 }
 
 // pub struct Tar {}

@@ -1,6 +1,6 @@
 [package]
 name = "ShinCrypt"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2024"
 authors = ["Ken Masters <GameHackingDojo@gmail.com>"]
 description = "Secure, fast and free cross platform encryption tool. Uses XChaCha20 not AES as NSA (Nasty Surveillance Agency) recommends"
@@ -43,8 +43,12 @@ winapi = { version = "0.3", features = [
   "winuser",
   "consoleapi",
   "wincon",
+  "handleapi",
+  "processthreadsapi",
+  "securitybaseapi",
 ] }
 gdk4-win32 = "0.10"
+winreg = "*"
 
 
 # [package.metadata.windows]

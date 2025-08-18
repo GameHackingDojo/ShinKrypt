@@ -13,6 +13,8 @@ struct Args {
 
   #[command(subcommand)]
   command: Option<Command>,
+
+  file: Option<String>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -37,14 +39,14 @@ pub fn cli() -> bool {
   match args.command {
     Some(Command::Encrypt { password, path, optional_path }) => {
       // in_path = std::path::PathBuf::from(path.clone());
-      if let Some(mut shincrypt) = con_sc(password, path, optional_path) {
+      if let Some(mut shincrypt) = con_shincrypt(password, path, optional_path) {
         shincrypt.set_progres(Some(tx));
         std::thread::Builder::new().stack_size(MB64).spawn(move || shincrypt.encrypt_file().unwrap()).unwrap();
       }
     }
     Some(Command::Decrypt { password, path, optional_path }) => {
       // in_path = std::path::PathBuf::from(path.clone());
-      if let Some(mut shincrypt) = con_sc(password, path, optional_path) {
+      if let Some(mut shincrypt) = con_shincrypt(password, path, optional_path) {
         shincrypt.set_progres(Some(tx));
         std::thread::Builder::new().stack_size(MB64).spawn(move || shincrypt.decrypt_file().unwrap()).unwrap();
       }
@@ -58,8 +60,8 @@ pub fn cli() -> bool {
       print!("\rProgress: {:.0}%", progress * 100.0);
       std::io::Write::flush(&mut std::io::stdout()).unwrap();
     }
-    println!();
-    println!("✅ Completed successfully.");
+
+    println!("\n✅ Completed successfully.");
   }
 
   // if args.remove {
@@ -69,7 +71,8 @@ pub fn cli() -> bool {
   true
 }
 
-fn con_sc(password: String, path: String, optional_path: Option<String>) -> Option<ShinCrypt> {
+///construct shincrypt
+fn con_shincrypt(password: String, path: String, optional_path: Option<String>) -> Option<ShinCrypt> {
   let input_path = std::path::PathBuf::from(path.clone());
   if !input_path.exists() {
     eprintln!("Invalid path: {}", path);

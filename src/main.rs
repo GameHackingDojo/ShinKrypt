@@ -44,6 +44,7 @@ pub struct AppConsts {
 
   pub upad: u32,
   pub margin: i32,
+  pub elevated: bool,
 }
 
 impl Default for AppConsts {
@@ -56,6 +57,7 @@ impl Default for AppConsts {
     let github_repo = format!("https://github.com/{}/{}", repo_owner, app_name);
     let download_url = format!("https://api.github.com/repos/{}/{}/releases/latest", repo_owner, app_name);
     let patreon_url = format!("https://www.patreon.com/c/{}", repo_owner);
+    let elevated = if cfg!(windows) { Global::is_elevated().unwrap_or(false) } else { false };
 
     return Self {
       app_name: String::from(APPNAME),
@@ -68,6 +70,7 @@ impl Default for AppConsts {
       github_repo,
       download_url,
       patreon_url,
+      elevated,
     };
   }
 }

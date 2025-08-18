@@ -21,11 +21,11 @@ impl<T: IsA<gtk::Widget>> MarginAll for T {
 }
 
 pub fn gtk_ui() -> gtk::glib::ExitCode {
-  let application = gtk::Application::builder().build();
+  let application = gtk::Application::builder().flags(gtk::gio::ApplicationFlags::HANDLES_OPEN).build();
   let aps = Arc::new(RwLock::new(AppState::default()));
   let consts = aps.read().consts.clone();
 
-  application.connect_activate(move |app| {
+  let setup_app = move |app: &gtk::Application, file_path: Option<std::path::PathBuf>| {
     if let Ok(settings) = AppSettings::import() {
       aps.write().settings = settings;
     }
@@ -67,6 +67,9 @@ pub fn gtk_ui() -> gtk::glib::ExitCode {
     let input = gtk::Entry::new();
     input.set_placeholder_text(Some("Path to file/directory"));
     input.set_hexpand(true);
+    if let Some(path) = file_path {
+      input.set_text(path.to_str().unwrap());
+    }
 
     GTKhelper::drag_n_drop(&input);
 
@@ -357,10 +360,41 @@ pub fn gtk_ui() -> gtk::glib::ExitCode {
       gtk::glib::ControlFlow::Continue
     });
 
+    // {
+    //   let aps_c = aps.clone();
+    //   let window_c = window.clone();
+
+    //   let test_btn = gtk::Button::with_label("🧪☢️🧪");
+    //   test_btn.set_tooltip_text(Some("TEST ONLY"));
+    //   test_btn.connect_clicked(move |_| match Global::is_elevated() {
+    //     Ok(v) => GTKhelper::message_box(&window_c, "Elevated", v.to_string(), None),
+    //     Err(e) => GTKhelper::message_box(&window_c, "Function failed", e, None),
+    //   });
+    //   grid.attach(&test_btn, 0, 5, 3, 1);
+    // }
+
     window.present();
 
     #[cfg(target_os = "windows")]
     GTKhelper::centre_to_screen(&window).unwrap();
+  };
+
+  let setup_app_c = setup_app.clone();
+  application.connect_activate(move |app| {
+    setup_app_c(app, None);
+  });
+
+  let setup_app_c = setup_app.clone();
+  // Connect to the "open" signal to handle file opening
+  application.connect_open(move |app, files, _hint| {
+    // for file in files {
+    //   if let Some(path) = file.path() {
+    //     println!("Opening file: {}", path.display());
+    //     // Handle the file here
+    //   }
+    // }
+    let file_path = files.first().and_then(|f| f.path());
+    setup_app_c(app, file_path);
   });
 
   application.run()
