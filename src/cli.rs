@@ -1,6 +1,6 @@
-use crate::{logic::{encryption::ShinCrypt, global::Global}, memory::MB64};
+use crate::{logic::encryption::ShinCrypt, memory::MB64};
 use clap::{Parser, Subcommand};
-use winapi::um::{consoleapi::AllocConsole, wincon::{ATTACH_PARENT_PROCESS, AttachConsole}};
+use winapi::um::wincon::{ATTACH_PARENT_PROCESS, AttachConsole};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
@@ -32,18 +32,18 @@ pub fn cli() -> bool {
 
   let (tx, rx) = crossbeam::channel::unbounded::<f64>();
 
-  let in_path;
+  // let in_path;
 
   match args.command {
     Some(Command::Encrypt { password, path, optional_path }) => {
-      in_path = std::path::PathBuf::from(path.clone());
+      // in_path = std::path::PathBuf::from(path.clone());
       if let Some(mut shincrypt) = con_sc(password, path, optional_path) {
         shincrypt.set_progres(Some(tx));
         std::thread::Builder::new().stack_size(MB64).spawn(move || shincrypt.encrypt_file().unwrap()).unwrap();
       }
     }
     Some(Command::Decrypt { password, path, optional_path }) => {
-      in_path = std::path::PathBuf::from(path.clone());
+      // in_path = std::path::PathBuf::from(path.clone());
       if let Some(mut shincrypt) = con_sc(password, path, optional_path) {
         shincrypt.set_progres(Some(tx));
         std::thread::Builder::new().stack_size(MB64).spawn(move || shincrypt.decrypt_file().unwrap()).unwrap();

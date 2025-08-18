@@ -158,8 +158,8 @@ pub fn gtk_ui() -> gtk::glib::ExitCode {
     grid.attach(&decrypt_btn, 1, 4, 1, 1);
     grid.attach(&settings_btn, 2, 4, 1, 1);
 
-    let (e_res_s, e_res_r) = crossbeam::channel::unbounded::<String>();
-    let (d_res_s, d_res_r) = crossbeam::channel::unbounded::<String>();
+    let (e_res_tx, e_res_rx) = crossbeam::channel::unbounded::<(String, std::time::Duration)>();
+    let (d_res_tx, d_res_rx) = crossbeam::channel::unbounded::<(String, std::time::Duration)>();
     let (progress_s, progress_r) = crossbeam::channel::unbounded::<f64>();
 
     let window_c = window.clone();
@@ -168,7 +168,7 @@ pub fn gtk_ui() -> gtk::glib::ExitCode {
     let output_c = output.clone();
     let password_c = password.clone();
     let aps_c = aps.clone();
-    let e_res_s_c = e_res_s.clone();
+    let e_res_tx_c = e_res_tx.clone();
     let progress_s_c = progress_s.clone();
 
     encrypt_btn.connect_clicked(move |_| {
@@ -207,16 +207,20 @@ pub fn gtk_ui() -> gtk::glib::ExitCode {
 
       let input_path_c = input_path.clone();
       let output_path_c = output_path.clone();
-      let e_res_s_c_c = e_res_s_c.clone();
+      let e_res_tx_c_c = e_res_tx_c.clone();
       let progress_s_c_c = progress_s_c.clone();
 
       let shincrypt = ShinCrypt::new(input_path_c.clone(), output_path_c.clone(), password_v.clone(), Some(progress_s_c_c.clone()));
 
       std::thread::Builder::new()
         .stack_size(MB64)
-        .spawn(move || match shincrypt.encrypt_file() {
-          Ok(_) => e_res_s_c_c.send("Success".to_string()),
-          Err(e) => e_res_s_c_c.send(e),
+        .spawn(move || {
+          let time = std::time::Instant::now();
+          match shincrypt.encrypt_file() {
+            Ok(_) => e_res_tx_c_c.send(("Success".to_string(), time.elapsed())),
+            Err(e) => e_res_tx_c_c.send((e, time.elapsed())),
+          }
+          .unwrap();
         })
         .unwrap();
 
@@ -229,7 +233,7 @@ pub fn gtk_ui() -> gtk::glib::ExitCode {
     let output_c = output.clone();
     let password_c = password.clone();
     let aps_c = aps.clone();
-    let d_res_s_c = d_res_s.clone();
+    let d_res_tx_c = d_res_tx.clone();
     let progress_s_c = progress_s.clone();
 
     decrypt_btn.connect_clicked(move |_| {
@@ -268,16 +272,20 @@ pub fn gtk_ui() -> gtk::glib::ExitCode {
 
       let input_path_c = input_path.clone();
       let output_path_c = output_path.clone();
-      let d_res_s_c_c = d_res_s_c.clone();
+      let d_res_tx_c_c = d_res_tx_c.clone();
       let progress_s_c_c = progress_s_c.clone();
 
       let shincrypt = ShinCrypt::new(input_path_c.clone(), output_path_c.clone(), password_v.clone(), Some(progress_s_c_c.clone()));
 
       std::thread::Builder::new()
         .stack_size(MB64)
-        .spawn(move || match shincrypt.decrypt_file() {
-          Ok(_) => d_res_s_c_c.send("Success".to_string()),
-          Err(e) => d_res_s_c_c.send(e),
+        .spawn(move || {
+          let time = std::time::Instant::now();
+          match shincrypt.decrypt_file() {
+            Ok(_) => d_res_tx_c_c.send(("Success".to_string(), time.elapsed())),
+            Err(e) => d_res_tx_c_c.send((e, time.elapsed())),
+          }
+          .unwrap();
         })
         .unwrap();
 
@@ -314,35 +322,35 @@ pub fn gtk_ui() -> gtk::glib::ExitCode {
       input_v.retain(|c| c != '"' && c != '\'');
       let input_path = std::path::PathBuf::from(input_v);
 
-      if let Ok(e_res) = e_res_r.try_recv() {
+      if let Ok((msg, dur)) = e_res_rx.try_recv() {
         grid_c.set_sensitive(true);
         progress_c.set_fraction(0.0);
-        if e_res == "Success" {
+        if msg == "Success" {
           if aps_c.read().settings.remove_org {
             if let Err(e) = Global::del_path(input_path.clone()) {
               GTKhelper::message_box(&window_c, "Error", e, None);
             };
           }
 
-          GTKhelper::message_box(&window_c, e_res, "File encrypted", None);
+          GTKhelper::message_box(&window_c, msg, format!("File encrypted in {}", Global::format_duration(dur)), None);
         } else {
-          GTKhelper::message_box(&window_c, "Failed", e_res, None);
+          GTKhelper::message_box(&window_c, "Failed", msg, None);
         }
       }
 
-      if let Ok(d_res) = d_res_r.try_recv() {
+      if let Ok((msg, dur)) = d_res_rx.try_recv() {
         grid_c.set_sensitive(true);
         progress_c.set_fraction(0.0);
-        if d_res == "Success" {
+        if msg == "Success" {
           if aps_c.read().settings.remove_org {
             if let Err(e) = Global::del_path(input_path.clone()) {
               GTKhelper::message_box(&window_c, "Error", e, None);
             };
           }
 
-          GTKhelper::message_box(&window_c, d_res, "File decrypted", None);
+          GTKhelper::message_box(&window_c, msg, format!("File decrypted in {}", Global::format_duration(dur)), None);
         } else {
-          GTKhelper::message_box(&window_c, "Failed", d_res, None);
+          GTKhelper::message_box(&window_c, "Failed", msg, None);
         }
       }
 
