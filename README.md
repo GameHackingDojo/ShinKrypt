@@ -3,3 +3,4 @@ Secure, fast and free cross platform encryption tool. Uses XChaCha20 not AES as 
 
 
 ![Screenshot](resources/screenshot.png)
+![Screenshot](resources/screenshot_w.png)
