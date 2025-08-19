@@ -332,14 +332,14 @@ impl FileHeader {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct ShinCrypt {
+pub struct ShinKrypt {
   input_path: std::path::PathBuf,
   output_dir: std::path::PathBuf,
   password: String,
   progress: Option<crossbeam::channel::Sender<f64>>,
 }
 
-impl ShinCrypt {
+impl ShinKrypt {
   pub fn new(input_path: impl AsRef<std::path::Path>, output_dir: impl AsRef<std::path::Path>, password: impl AsRef<str>, progress: Option<crossbeam::channel::Sender<f64>>) -> Self {
     return Self {
       input_path: input_path.as_ref().to_path_buf(),
@@ -566,8 +566,8 @@ impl ShinCrypt {
     let encrypt_time = {
       let time = std::time::Instant::now();
 
-      let shincrypt = ShinCrypt::new(&path, output_dir, env!("CARGO_PKG_NAME"), self.progress.clone());
-      if let Err(e) = shincrypt.encrypt_file() {
+      let shinkrypt = ShinKrypt::new(&path, output_dir, env!("CARGO_PKG_NAME"), self.progress.clone());
+      if let Err(e) = shinkrypt.encrypt_file() {
         return Err(e);
       };
 
@@ -580,8 +580,8 @@ impl ShinCrypt {
     let decrypt_time = {
       let time = std::time::Instant::now();
 
-      let shincrypt = ShinCrypt::new(input_path, output_dir, env!("CARGO_PKG_NAME"), self.progress.clone());
-      if let Err(e) = shincrypt.decrypt_file() {
+      let shinkrypt = ShinKrypt::new(input_path, output_dir, env!("CARGO_PKG_NAME"), self.progress.clone());
+      if let Err(e) = shinkrypt.decrypt_file() {
         return Err(e);
       };
 

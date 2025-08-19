@@ -38,10 +38,12 @@ pub struct AppConsts {
   pub authors: Vec<String>,
   pub author_ghd: String,
   pub author_ken: String,
+  pub install_dir: std::path::PathBuf,
   pub repo_owner: String,
   pub github_repo: String,
   pub download_url: String,
   pub patreon_url: String,
+  pub reg_keys: Vec<String>,
 
   pub upad: u32,
   pub margin: i32,
@@ -56,11 +58,13 @@ impl Default for AppConsts {
     let authors: Vec<String> = env!("CARGO_PKG_AUTHORS").split(':').map(str::to_string).collect();
     let author_ghd = String::from(authors[0].trim());
     let author_ken = String::from(authors[1].trim());
+    let install_dir = if cfg!(target_os = "windows") { std::path::PathBuf::from(format!(r"C:\Program Files\{}\{}", author_ghd, app_name)) } else { std::path::PathBuf::new() };
     let repo_owner = String::from("GameHackingDojo");
     let github_repo = String::from(env!("CARGO_PKG_REPOSITORY"));
     let download_url = format!("https://api.github.com/repos/{}/{}/releases/latest", repo_owner, app_name);
     let patreon_url = format!("https://www.patreon.com/c/{}", repo_owner);
-    let elevated = if cfg!(windows) { Global::is_elevated().unwrap_or(false) } else { false };
+    let elevated = if cfg!(target_os = "windows") { Global::is_elevated().unwrap_or(false) } else { false };
+    let reg_keys = vec![format!(r#"*\shell\{}"#, app_name), format!(r#"Directory\shell\{}"#, app_name)];
 
     return Self {
       app_name,
@@ -71,11 +75,13 @@ impl Default for AppConsts {
       authors,
       author_ghd,
       author_ken,
+      install_dir,
       repo_owner,
       github_repo,
       download_url,
       patreon_url,
       elevated,
+      reg_keys,
     };
   }
 }

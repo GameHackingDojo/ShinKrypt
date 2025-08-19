@@ -1,4 +1,4 @@
-use crate::{logic::encryption::ShinCrypt, memory::MB64};
+use crate::{logic::encryption::ShinKrypt, memory::MB64};
 use clap::{Parser, Subcommand};
 use winapi::um::wincon::{ATTACH_PARENT_PROCESS, AttachConsole};
 
@@ -39,16 +39,16 @@ pub fn cli() -> bool {
   match args.command {
     Some(Command::Encrypt { password, path, optional_path }) => {
       // in_path = std::path::PathBuf::from(path.clone());
-      if let Some(mut shincrypt) = con_shincrypt(password, path, optional_path) {
-        shincrypt.set_progres(Some(tx));
-        std::thread::Builder::new().stack_size(MB64).spawn(move || shincrypt.encrypt_file().unwrap()).unwrap();
+      if let Some(mut shinkrypt) = con_shinkrypt(password, path, optional_path) {
+        shinkrypt.set_progres(Some(tx));
+        std::thread::Builder::new().stack_size(MB64).spawn(move || shinkrypt.encrypt_file().unwrap()).unwrap();
       }
     }
     Some(Command::Decrypt { password, path, optional_path }) => {
       // in_path = std::path::PathBuf::from(path.clone());
-      if let Some(mut shincrypt) = con_shincrypt(password, path, optional_path) {
-        shincrypt.set_progres(Some(tx));
-        std::thread::Builder::new().stack_size(MB64).spawn(move || shincrypt.decrypt_file().unwrap()).unwrap();
+      if let Some(mut shinkrypt) = con_shinkrypt(password, path, optional_path) {
+        shinkrypt.set_progres(Some(tx));
+        std::thread::Builder::new().stack_size(MB64).spawn(move || shinkrypt.decrypt_file().unwrap()).unwrap();
       }
     }
     _ => return false,
@@ -71,8 +71,8 @@ pub fn cli() -> bool {
   true
 }
 
-///construct shincrypt
-fn con_shincrypt(password: String, path: String, optional_path: Option<String>) -> Option<ShinCrypt> {
+///construct shinkrypt
+fn con_shinkrypt(password: String, path: String, optional_path: Option<String>) -> Option<ShinKrypt> {
   let input_path = std::path::PathBuf::from(path.clone());
   if !input_path.exists() {
     eprintln!("Invalid path: {}", path);
@@ -85,5 +85,5 @@ fn con_shincrypt(password: String, path: String, optional_path: Option<String>) 
     // println!("Optional Path: {}", path);
   }
 
-  Some(ShinCrypt::new(input_path, output_dir, password, None))
+  Some(ShinKrypt::new(input_path, output_dir, password, None))
 }

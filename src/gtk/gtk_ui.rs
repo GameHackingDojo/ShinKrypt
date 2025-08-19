@@ -1,4 +1,4 @@
-use crate::{AppState, gtk::settings_win::{AppSettings, settings_ui}, logic::{encryption::ShinCrypt, global::{GTKhelper, Global}}, memory::MB64};
+use crate::{AppState, gtk::settings_win::{AppSettings, settings_ui}, logic::{encryption::ShinKrypt, global::{GTKhelper, Global}}, memory::MB64};
 use gtk::prelude::*;
 use gtk4 as gtk;
 use parking_lot::RwLock;
@@ -213,13 +213,13 @@ pub fn gtk_ui() -> gtk::glib::ExitCode {
       let e_res_tx_c_c = e_res_tx_c.clone();
       let progress_s_c_c = progress_s_c.clone();
 
-      let shincrypt = ShinCrypt::new(input_path_c.clone(), output_path_c.clone(), password_v.clone(), Some(progress_s_c_c.clone()));
+      let shinkrypt = ShinKrypt::new(input_path_c.clone(), output_path_c.clone(), password_v.clone(), Some(progress_s_c_c.clone()));
 
       std::thread::Builder::new()
         .stack_size(MB64)
         .spawn(move || {
           let time = std::time::Instant::now();
-          match shincrypt.encrypt_file() {
+          match shinkrypt.encrypt_file() {
             Ok(_) => e_res_tx_c_c.send(("Success".to_string(), time.elapsed())),
             Err(e) => e_res_tx_c_c.send((e, time.elapsed())),
           }
@@ -278,13 +278,13 @@ pub fn gtk_ui() -> gtk::glib::ExitCode {
       let d_res_tx_c_c = d_res_tx_c.clone();
       let progress_s_c_c = progress_s_c.clone();
 
-      let shincrypt = ShinCrypt::new(input_path_c.clone(), output_path_c.clone(), password_v.clone(), Some(progress_s_c_c.clone()));
+      let shinkrypt = ShinKrypt::new(input_path_c.clone(), output_path_c.clone(), password_v.clone(), Some(progress_s_c_c.clone()));
 
       std::thread::Builder::new()
         .stack_size(MB64)
         .spawn(move || {
           let time = std::time::Instant::now();
-          match shincrypt.decrypt_file() {
+          match shinkrypt.decrypt_file() {
             Ok(_) => d_res_tx_c_c.send(("Success".to_string(), time.elapsed())),
             Err(e) => d_res_tx_c_c.send((e, time.elapsed())),
           }

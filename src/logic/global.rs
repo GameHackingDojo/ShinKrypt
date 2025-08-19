@@ -191,13 +191,14 @@ impl Global {
   }
 
   /// deletes given PathBuf whather it's file or directory
-  pub fn del_path(path: std::path::PathBuf) -> Result<(), String> {
+  pub fn del_path(path: impl AsRef<std::path::Path>) -> Result<(), String> {
+    let path = path.as_ref();
     if path.is_file() {
-      if let Err(e) = std::fs::remove_file(path.clone()) {
+      if let Err(e) = std::fs::remove_file(path) {
         return Err(format!("File can't be deleted\n{}", e));
       }
     } else if path.is_dir() {
-      if let Err(e) = std::fs::remove_dir_all(path.clone()) {
+      if let Err(e) = std::fs::remove_dir_all(path) {
         return Err(format!("Directory can't be deleted\n{}", e));
       }
     }

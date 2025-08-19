@@ -1,4 +1,4 @@
-use crate::{AppState, gtk::{about_win::about_win, gtk_ui::MarginAll}, logic::{encryption::ShinCrypt, global::{GTKhelper, Global}}, memory::MB64};
+use crate::{AppState, gtk::{about_win::about_win, gtk_ui::MarginAll}, logic::{encryption::ShinKrypt, global::{GTKhelper, Global}}, memory::MB64};
 use gtk::prelude::*;
 use gtk4 as gtk;
 use parking_lot::RwLock;
@@ -123,10 +123,10 @@ pub fn settings_ui(window: &gtk::ApplicationWindow, aps: Arc<RwLock<AppState>>, 
       GTKhelper::message_box(&window_c, "Please wait", "Benchmarking has started, the progress bar will be filled two times then the results will appear once the test is done.", None);
 
       let b_res_s_c = b_res_s.clone();
-      let mut shin_crypt = ShinCrypt::default();
-      shin_crypt.set_progres(Some(bench_prog_c.clone()));
+      let mut shinkrypt = ShinKrypt::default();
+      shinkrypt.set_progres(Some(bench_prog_c.clone()));
 
-      match std::thread::Builder::new().stack_size(MB64).spawn(move || shin_crypt.benchmark(b_res_s_c)) {
+      match std::thread::Builder::new().stack_size(MB64).spawn(move || shinkrypt.benchmark(b_res_s_c)) {
         Ok(_) => (),
         Err(e) => GTKhelper::message_box(&window_c, "Error", e.to_string(), None),
       };
@@ -143,12 +143,19 @@ pub fn settings_ui(window: &gtk::ApplicationWindow, aps: Arc<RwLock<AppState>>, 
 
     let tooltip = if consts.elevated { "Install to C:\\ProgramFiles and add to context menu" } else { "Available when run as admin" };
 
-    let install_btn = gtk4::Button::with_label("Install ⬇️️");
+    let installed = installed(aps.clone());
+    let install_label = if installed { "Uninstall 🗑️" } else { "Install ⬇️️" };
+
+    let install_btn = gtk4::Button::with_label(install_label);
     install_btn.set_hexpand(true);
     install_btn.set_sensitive(consts.elevated);
     install_btn.set_tooltip_text(Some(tooltip));
     install_btn.connect_clicked(move |_| {
-      install(&window_c, aps_c.clone());
+      if installed {
+        uninstall(&window_c, aps_c.clone());
+      } else {
+        install(&window_c, aps_c.clone());
+      }
     });
     grid_btn.attach(&install_btn, 1, 0, 1, 1);
   }
@@ -202,53 +209,130 @@ pub fn install(window: &gtk4::ApplicationWindow, aps: Arc<RwLock<AppState>>) {
     std::fs::copy(settings_src, exe_target_dir.join(SETTINGS_FILE)).unwrap();
   }
 
-  // let command_name = &app_name;
-
-  // // Add registry keys
-  // let hkcr = winreg::RegKey::predef(winreg::enums::HKEY_CLASSES_ROOT);
-
-  // // Create the parent key: *\shell\<command_name>
-  // let (file_key, _) = hkcr.create_subkey(format!(r#"*\shell\{}"#, command_name)).unwrap();
-
-  // // Set the icon here
-  // file_key.set_value("Icon", &format!(r#""{}""#, exe_target.display())).unwrap();
-
-  // // Now create the command subkey
-  // let (command_key, _) = file_key.create_subkey("command").unwrap();
-  // command_key.set_value("", &format!(r#""{}" "%1""#, exe_target.display())).unwrap();
-
-  // // Create the parent key: *\shell\<command_name>
-  // let (dir_key, _) = hkcr.create_subkey(format!(r#"Directory\shell\{}"#, command_name)).unwrap();
-
-  // // Set the icon here
-  // dir_key.set_value("Icon", &format!(r#""{}""#, exe_target.display())).unwrap();
-
-  // // Now create the command subkey
-  // let (command_key, _) = dir_key.create_subkey("command").unwrap();
-  // command_key.set_value("", &format!(r#""{}" "%1""#, exe_target.display())).unwrap();
-
-  let reg_path = format!(r#"*\shell\{}"#, consts.app_name);
-
-  add_ctx_option(&reg_path, &exe_target);
-
-  let reg_path = format!(r#"Directory\shell\{}"#, consts.app_name);
-
-  add_ctx_option(&reg_path, &exe_target);
+  add_ctx_option(Dst::Files, &exe_target, aps.clone()).unwrap();
+  add_ctx_option(Dst::Directories, &exe_target, aps.clone()).unwrap();
 
   GTKhelper::message_box(window, "Success", format!("Application installed successfully to:\n{}", exe_target.display()), None);
 }
 
-fn add_ctx_option(reg_path: &str, exe_target: impl AsRef<std::path::Path>) {
+pub fn uninstall(window: &gtk4::ApplicationWindow, aps: Arc<RwLock<AppState>>) {
+  let consts = aps.read().consts.clone();
+
+  let exe_src = std::path::PathBuf::from(&consts.file_name);
+  let exe_dst_dir = std::path::PathBuf::from(format!(r"C:\Program Files\{}\{}", consts.author_ghd, consts.app_name));
+  let exe_dst = exe_dst_dir.join(&consts.file_name);
+
+  let mut is_err = false;
+  let mut error = String::new();
+
+  if exe_src != exe_dst {
+    if let Err(e) = Global::del_path(&exe_dst_dir) {
+      error.push_str(&e);
+      error.push(' ');
+      is_err = true;
+    }
+  }
+
+  if let Err(e) = rem_ctx_option(Dst::Files, aps.clone()) {
+    error.push_str(&e);
+    error.push(' ');
+    is_err = true;
+  };
+  if let Err(e) = rem_ctx_option(Dst::Directories, aps.clone()) {
+    error.push_str(&e);
+    error.push(' ');
+    is_err = true;
+  };
+
+  if is_err {
+    error.insert_str(0, "\nErrors: ");
+  }
+
+  GTKhelper::message_box(window, "Success", format!("Application uninstalled successfully{}", error), None);
+}
+
+enum Dst {
+  Files,
+  Directories,
+}
+
+impl Dst {
+  fn to_string(&self) -> String {
+    match self {
+      Dst::Files => String::from("*"),
+      Dst::Directories => String::from("Directory"),
+    }
+  }
+}
+
+fn add_ctx_option(dst: Dst, exe_target: impl AsRef<std::path::Path>, aps: Arc<RwLock<AppState>>) -> Result<(), String> {
+  let consts = aps.read().consts.clone();
+
   // Add registry keys
   let hkcr = winreg::RegKey::predef(winreg::enums::HKEY_CLASSES_ROOT);
 
   // Create the parent key: *\shell\<command_name>
-  let (dir_key, _) = hkcr.create_subkey(reg_path).unwrap();
+  let (key, _) = match hkcr.create_subkey(format!(r#"{}\shell\{}"#, dst.to_string(), consts.app_name)) {
+    Ok(v) => v,
+    Err(e) => return Err(e.to_string()),
+  };
 
   // Set the icon here
-  dir_key.set_value("Icon", &format!(r#""{}""#, exe_target.as_ref().display())).unwrap();
+  key.set_value("Icon", &format!(r#""{}""#, exe_target.as_ref().display())).unwrap();
 
   // Now create the command subkey
-  let (command_key, _) = dir_key.create_subkey("command").unwrap();
+  let (command_key, _) = key.create_subkey("command").unwrap();
   command_key.set_value("", &format!(r#""{}" "%1""#, exe_target.as_ref().display())).unwrap();
+
+  Ok(())
+}
+
+fn rem_ctx_option(dst: Dst, aps: Arc<RwLock<AppState>>) -> Result<(), String> {
+  let consts = aps.read().consts.clone();
+
+  // Add registry keys
+  let hkcr = winreg::RegKey::predef(winreg::enums::HKEY_CLASSES_ROOT);
+
+  // Create the parent key: *\shell\<command_name>
+  if let Err(e) = hkcr.delete_subkey_all(format!(r#"{}\shell\{}"#, dst.to_string(), consts.app_name)) {
+    return Err(e.to_string());
+  };
+
+  Ok(())
+}
+
+fn installed(aps: Arc<RwLock<AppState>>) -> bool {
+  let mut installed = false;
+  let consts = aps.read().consts.clone();
+  let exe_dst_dir = consts.install_dir;
+  let exe_dst = exe_dst_dir.join(&consts.file_name);
+
+  if let Ok(v) = chk_reg_key(&consts.reg_keys[0]) {
+    installed = v;
+  };
+
+  if let Ok(v) = chk_reg_key(&consts.reg_keys[1]) {
+    installed = v;
+  };
+
+  if exe_dst.exists() {
+    installed = true;
+  }
+
+  installed
+}
+
+fn chk_reg_key(path: impl AsRef<str>) -> Result<bool, std::io::Error> {
+  let hkcr = winreg::RegKey::predef(winreg::enums::HKEY_CLASSES_ROOT);
+
+  match hkcr.open_subkey(path.as_ref()) {
+    Ok(_) => Ok(true),
+    Err(e) => {
+      if e.kind() == std::io::ErrorKind::NotFound {
+        Ok(false)
+      } else {
+        Err(e)
+      }
+    }
+  }
 }
