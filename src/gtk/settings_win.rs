@@ -1,4 +1,4 @@
-use crate::{AppState, gtk::{about_win::about_win, gtk_ui::MarginAll}, logic::{encryption::ShinKrypt, global::{GTKhelper, Global}}, memory::MB64};
+use crate::{AppState, gtk::{about_win::about_win, gtk_ui::MarginAll}, logic::{encryption::ShinKrypt, global::{GTKhelper, Global}}, memory::{GB1, MB64}};
 use gtk::prelude::*;
 use gtk4 as gtk;
 use parking_lot::RwLock;
@@ -179,7 +179,7 @@ pub fn settings_ui(window: &gtk::ApplicationWindow, aps: Arc<RwLock<AppState>>, 
   // Use glib::source::idle_add to update GUI from main thread
   gtk::glib::source::idle_add_local(move || {
     if let Ok((e_time, d_time)) = b_res_r.try_recv() {
-      GTKhelper::message_box(&window_c, "Done", format!("Encrypted 1GB:\n\nTime: {}\nSpeed: {:.2} MB/s\n\nDecrypted 1GB:\n\nTime: {}\nSpeed: {:.2} MB/s\n", Global::format_duration(e_time), Global::calculate_speed(1.0, e_time), Global::format_duration(d_time), Global::calculate_speed(1.0, d_time)), None)
+      GTKhelper::message_box(&window_c, "Done", format!("Encrypted 1GB:\n\nTime: {}\nSpeed: {:.2} MB/s\n\nDecrypted 1GB:\n\nTime: {}\nSpeed: {:.2} MB/s\n", Global::format_duration(e_time), Global::calculate_speed(GB1 as u64, e_time), Global::format_duration(d_time), Global::calculate_speed(GB1 as u64, d_time)), None)
     };
 
     gtk::glib::ControlFlow::Continue

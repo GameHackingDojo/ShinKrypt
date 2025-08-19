@@ -1,4 +1,4 @@
-use crate::{AppState, OLDAPPNAME};
+use crate::{AppState, OLDAPPNAME, memory::MB};
 use gtk::{gdk::prelude::DisplayExt, prelude::*};
 use gtk4 as gtk;
 use parking_lot::RwLock;
@@ -39,15 +39,16 @@ impl Global {
     format!("{:02}:{:02}:{:02}.{:03}", hours, minutes, seconds, millis)
   }
 
-  pub fn calculate_speed(data_gb: f64, duration: std::time::Duration) -> f64 {
-    // Convert Gigabytes (GB) to Megabytes (MB)
-    let data_mb = data_gb * 1024.0; // 1 GB = 1024 MB
+  /// takes data in bytes and returns MB/s
+  pub fn calculate_speed(data_b: u64, duration: std::time::Duration) -> f64 {
+    // Convert Bytes (B) to Megabytes (MB)
+    let data_mb = data_b / MB as u64;
 
     // Convert Duration to seconds (as a floating-point number)
     let duration_secs = duration.as_secs_f64();
 
     // Calculate speed in MB/s
-    data_mb / duration_secs
+    data_mb as f64 / duration_secs
   }
 
   pub fn check_for_update(aps: Arc<RwLock<AppState>>) -> Result<bool, String> {
