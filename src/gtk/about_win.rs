@@ -55,7 +55,9 @@ pub fn about_win(window: &gtk::ApplicationWindow, aps: Arc<RwLock<AppState>>) {
           Ok(v) => {
             GTKhelper::message_box(&window_c, "Success", format!("{}\nThe application will restart in 2 seconds..", v), None);
             std::thread::sleep(std::time::Duration::from_secs(2));
-            Global::restart_program();
+            if let Err(e) = Global::restart_program() {
+              GTKhelper::message_box(&window_c, "Error", format!("{}", e), None);
+            };
           }
           Err(e) => GTKhelper::message_box(&window_c, "Error", format!("{}", e), None),
         };
@@ -63,7 +65,7 @@ pub fn about_win(window: &gtk::ApplicationWindow, aps: Arc<RwLock<AppState>>) {
         GTKhelper::message_box(&window_c, "No updates", "You're using the latest version\n\n", None);
       }
     }
-    Err(e) => println!("{}{}", ("error"), e),
+    Err(e) => GTKhelper::message_box(&window_c, "Error", format!("{}", e), None),
   });
 
   grid.attach(&update_btn, 0, 2, 1, 1);

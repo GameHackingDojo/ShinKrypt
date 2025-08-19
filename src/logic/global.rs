@@ -113,10 +113,9 @@ impl Global {
   }
 
   pub fn download_latest_version(aps: Arc<RwLock<AppState>>) -> Result<String, String> {
-    let asset_name = aps.read().consts.file_name.clone();
-    // println!("{}{}", ("file name = "), asset_name);
-    let url = aps.read().consts.download_url.clone();
-    // println!("{}{}", ("download url = "), url);
+    let consts = aps.read().consts.clone();
+    let asset_name = consts.file_name.clone();
+    let url = consts.download_url.clone();
 
     // Create a reqwest client
     let client = reqwest::blocking::Client::new();
@@ -171,7 +170,7 @@ impl Global {
     Ok(())
   }
 
-  pub fn restart_program() {
+  pub fn restart_program() -> Result<(), String> {
     use std::{os::windows::process::CommandExt, process::{Command, Stdio}};
     let exe_path = std::env::current_exe().expect("Failed to get current executable path");
 
@@ -182,12 +181,8 @@ impl Global {
     cmd.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).creation_flags(0x00000008); // CREATE_NEW_PROCESS_GROUP
 
     match cmd.spawn() {
-      Ok(_) => {
-        // println!("Restarting after 1 second...");
-        // std::thread::sleep(std::time::Duration::from_secs(1));
-        std::process::exit(0);
-      }
-      Err(e) => eprintln!("Failed to restart: {}", e),
+      Ok(_) => std::process::exit(0),
+      Err(e) => return Err(format!("Failed to restart: {}", e)),
     }
   }
 
