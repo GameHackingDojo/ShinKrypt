@@ -15,7 +15,7 @@ pub fn about_win(window: &gtk::ApplicationWindow, aps: Arc<RwLock<AppState>>) {
   grid.set_margin_all(consts.margin);
   settings_win.set_child(Some(&grid));
 
-  let author = aps.read().consts.author.clone();
+  let author = aps.read().consts.author_ghd.clone();
   let version = aps.read().consts.version.clone();
   let repo = aps.read().consts.github_repo.clone();
   let text = format!("Made by the\n{}\nThank you for your support\n\n{}", author, version);

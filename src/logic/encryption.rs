@@ -1,4 +1,4 @@
-use crate::{APPNAME, logic::global::FileDir, memory::*};
+use crate::{logic::global::FileDir, memory::*};
 use argon2::password_hash::PasswordHasher;
 use chacha20::cipher::{KeyIvInit, StreamCipher};
 use std::{io::{BufRead, Read, Write}, u16};
@@ -566,7 +566,7 @@ impl ShinCrypt {
     let encrypt_time = {
       let time = std::time::Instant::now();
 
-      let shincrypt = ShinCrypt::new(&path, output_dir, APPNAME, self.progress.clone());
+      let shincrypt = ShinCrypt::new(&path, output_dir, env!("CARGO_PKG_NAME"), self.progress.clone());
       if let Err(e) = shincrypt.encrypt_file() {
         return Err(e);
       };
@@ -580,7 +580,7 @@ impl ShinCrypt {
     let decrypt_time = {
       let time = std::time::Instant::now();
 
-      let shincrypt = ShinCrypt::new(input_path, output_dir, APPNAME, self.progress.clone());
+      let shincrypt = ShinCrypt::new(input_path, output_dir, env!("CARGO_PKG_NAME"), self.progress.clone());
       if let Err(e) = shincrypt.decrypt_file() {
         return Err(e);
       };

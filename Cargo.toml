@@ -1,11 +1,11 @@
 [package]
-name = "ShinCrypt"
+name = "ShinKrypt"
 version = "0.1.8"
 edition = "2024"
-authors = ["Ken Masters <GameHackingDojo@gmail.com>"]
+authors = ["Game Hacking Dojo", "Ken Masters"]
 description = "Secure, fast and free cross platform encryption tool. Uses XChaCha20 not AES as NSA (Nasty Surveillance Agency) recommends"
 license = "GPL-3.0"
-repository = "https://github.com/GameHackingDojo/ShinCrypt"
+repository = "https://github.com/GameHackingDojo/ShinKrypt"
 license-file = "LICENSE"
 
 

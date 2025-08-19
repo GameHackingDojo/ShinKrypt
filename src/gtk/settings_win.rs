@@ -189,7 +189,7 @@ pub fn install(window: &gtk4::ApplicationWindow, aps: Arc<RwLock<AppState>>) {
   let consts = aps.read().consts.clone();
 
   let exe_source = std::path::PathBuf::from(&consts.file_name);
-  let exe_target_dir = std::path::PathBuf::from(format!(r"C:\Program Files\{}\{}", consts.author, consts.app_name));
+  let exe_target_dir = std::path::PathBuf::from(format!(r"C:\Program Files\{}\{}", consts.author_ghd, consts.app_name));
   let exe_target = exe_target_dir.join(&consts.file_name);
 
   // Ensure target dir exists
