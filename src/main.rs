@@ -38,6 +38,7 @@ pub struct AppConsts {
   pub authors: Vec<String>,
   pub author_ghd: String,
   pub author_ken: String,
+  pub cur_path: std::path::PathBuf,
   pub install_dir: std::path::PathBuf,
   pub install_path: std::path::PathBuf,
   pub repo_owner: String,
@@ -59,6 +60,7 @@ impl Default for AppConsts {
     let authors: Vec<String> = env!("CARGO_PKG_AUTHORS").split(':').map(str::to_string).collect();
     let author_ghd = String::from(authors[0].trim());
     let author_ken = String::from(authors[1].trim());
+    let cur_path = std::env::current_exe().unwrap();
     let install_dir = if cfg!(target_os = "windows") { std::path::PathBuf::from(format!(r"C:\Program Files\{}\{}", author_ghd, app_name)) } else { std::path::PathBuf::new() };
     let install_path = install_dir.join(&file_name);
     let repo_owner = String::from("GameHackingDojo");
@@ -77,6 +79,7 @@ impl Default for AppConsts {
       authors,
       author_ghd,
       author_ken,
+      cur_path,
       install_dir,
       install_path,
       repo_owner,

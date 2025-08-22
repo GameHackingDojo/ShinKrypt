@@ -115,10 +115,13 @@ pub fn settings_ui(window: &gtk::ApplicationWindow, aps: Arc<RwLock<AppState>>, 
   let bench_prog_c = bench_prog.clone();
 
   {
+    let available = consts.elevated || (consts.cur_path != consts.install_path);
+    let tooltip = if available { "Test your machine" } else { "Available when run as admin" };
+
     let benchmark_btn = gtk4::Button::with_label("Benchmark 🚝");
     benchmark_btn.set_hexpand(true);
-    // benchmark_btn.set_sensitive(false);
-    benchmark_btn.set_tooltip_text(Some("Test your machine"));
+    benchmark_btn.set_sensitive(available);
+    benchmark_btn.set_tooltip_text(Some(tooltip));
     benchmark_btn.connect_clicked(move |_| {
       GTKhelper::message_box(&window_c, "Please wait", "Benchmarking has started, the progress bar will be filled two times then the results will appear once the test is done.", None);
 
@@ -136,7 +139,7 @@ pub fn settings_ui(window: &gtk::ApplicationWindow, aps: Arc<RwLock<AppState>>, 
     grid_btn.attach(&benchmark_btn, 0, 0, width, 1);
   }
 
-  // #[cfg(target_os = "windows")]
+  #[cfg(target_os = "windows")]
   {
     let window_c = window.clone();
     let aps_c = aps.clone();
@@ -146,29 +149,28 @@ pub fn settings_ui(window: &gtk::ApplicationWindow, aps: Arc<RwLock<AppState>>, 
     let install_lbl = "Install ⬇️️";
     let uninstall_lbl = "Uninstall 🗑️";
 
-    let installed = reg_added(aps.clone()) && prog_installed(aps.clone());
-    let install_btn_lbl = if installed { uninstall_lbl } else { install_lbl };
+    let install_btn_lbl = if installed(aps.clone()) { uninstall_lbl } else { install_lbl };
 
     let install_btn = gtk4::Button::with_label(install_btn_lbl);
     install_btn.set_hexpand(true);
     install_btn.set_sensitive(consts.elevated);
     install_btn.set_tooltip_text(Some(tooltip));
     install_btn.connect_clicked(move |btn| {
-      if installed {
+      if installed(aps_c.clone()) {
         uninstall(&window_c, aps_c.clone());
         rem_reg(&window_c, aps_c.clone());
 
-        let installed = reg_added(aps_c.clone()) && prog_installed(aps_c.clone());
-        let install_btn_lbl = if installed { uninstall_lbl } else { install_lbl };
+        let install_btn_lbl = if installed(aps_c.clone()) { uninstall_lbl } else { install_lbl };
 
+        // btn.set_sensitive(false);
         btn.set_label(install_btn_lbl);
       } else {
         install(&window_c, aps_c.clone());
         add_reg(&window_c, aps_c.clone());
 
-        let installed = reg_added(aps_c.clone()) && prog_installed(aps_c.clone());
-        let install_btn_lbl = if installed { uninstall_lbl } else { install_lbl };
+        let install_btn_lbl = if installed(aps_c.clone()) { uninstall_lbl } else { install_lbl };
 
+        // btn.set_sensitive(false);
         btn.set_label(install_btn_lbl);
       }
     });
@@ -210,7 +212,7 @@ pub fn settings_ui(window: &gtk::ApplicationWindow, aps: Arc<RwLock<AppState>>, 
 pub fn install(window: &gtk4::ApplicationWindow, aps: Arc<RwLock<AppState>>) {
   let consts = aps.read().consts.clone();
 
-  let exe_src = std::path::PathBuf::from(&consts.file_name);
+  let exe_src = consts.cur_path;
   let install_dir = consts.install_dir;
   let exe_dst = consts.install_path;
 
@@ -230,7 +232,7 @@ pub fn install(window: &gtk4::ApplicationWindow, aps: Arc<RwLock<AppState>>) {
 pub fn uninstall(window: &gtk4::ApplicationWindow, aps: Arc<RwLock<AppState>>) {
   let consts = aps.read().consts.clone();
 
-  let exe_src = std::path::PathBuf::from(&consts.file_name);
+  let exe_src = consts.cur_path;
   let install_dir = consts.install_dir;
   let install_path = consts.install_path;
 
@@ -364,6 +366,9 @@ fn prog_installed(aps: Arc<RwLock<AppState>>) -> bool {
 
   installed
 }
+
+/// bool checks if installed to Program Files and to registry
+fn installed(aps: Arc<RwLock<AppState>>) -> bool { reg_added(aps.clone()) && prog_installed(aps.clone()) }
 
 fn chk_reg_key(path: impl AsRef<str>) -> Result<bool, std::io::Error> {
   let hkcr = winreg::RegKey::predef(winreg::enums::HKEY_CLASSES_ROOT);
