@@ -186,6 +186,46 @@ impl Global {
     }
   }
 
+  pub fn delete_self() -> Result<(), String> {
+    use std::os::windows::process::CommandExt;
+    use std::{env, fs, process::{Command, Stdio}, thread, time::Duration};
+
+    let exe_path = env::current_exe().expect("Failed to get current executable path");
+    let exe_path_str = exe_path.to_str().expect("Invalid executable path");
+    let current_pid = std::process::id();
+
+    // Create a batch script that will delete the executable after a delay
+    let batch_script = format!(
+      "@echo off\n\
+           taskkill /PID {} /F >nul 2>&1\n\
+           timeout /t 1 /nobreak >nul\n\
+           del \"{}\"\n\
+           del \"%~f0\"", // Delete the batch script itself
+      current_pid, exe_path_str
+    );
+
+    // Write the batch script to a temporary file
+    let temp_dir = env::temp_dir();
+    let batch_file = temp_dir.join("delete_self.bat");
+
+    if let Err(e) = fs::write(&batch_file, batch_script) {
+      return Err(format!("Failed to create batch script: {}", e));
+    }
+
+    // Execute the batch script in a detached process
+    let mut cmd = Command::new("cmd.exe");
+    cmd.arg("/C").arg(&batch_file).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).creation_flags(0x00000008); // CREATE_NEW_PROCESS_GROUP
+
+    match cmd.spawn() {
+      Ok(_) => {
+        // Give the batch script a moment to start
+        thread::sleep(Duration::from_millis(100));
+        Ok(())
+      }
+      Err(e) => Err(format!("Failed to start deletion process: {}", e)),
+    }
+  }
+
   /// deletes given PathBuf whather it's file or directory
   pub fn del_path(path: impl AsRef<std::path::Path>) -> Result<(), String> {
     let path = path.as_ref();

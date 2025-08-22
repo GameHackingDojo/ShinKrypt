@@ -39,6 +39,7 @@ pub struct AppConsts {
   pub author_ghd: String,
   pub author_ken: String,
   pub install_dir: std::path::PathBuf,
+  pub install_path: std::path::PathBuf,
   pub repo_owner: String,
   pub github_repo: String,
   pub download_url: String,
@@ -59,6 +60,7 @@ impl Default for AppConsts {
     let author_ghd = String::from(authors[0].trim());
     let author_ken = String::from(authors[1].trim());
     let install_dir = if cfg!(target_os = "windows") { std::path::PathBuf::from(format!(r"C:\Program Files\{}\{}", author_ghd, app_name)) } else { std::path::PathBuf::new() };
+    let install_path = install_dir.join(&file_name);
     let repo_owner = String::from("GameHackingDojo");
     let github_repo = String::from(env!("CARGO_PKG_REPOSITORY"));
     let download_url = format!("https://api.github.com/repos/{}/{}/releases/latest", repo_owner, app_name);
@@ -76,6 +78,7 @@ impl Default for AppConsts {
       author_ghd,
       author_ken,
       install_dir,
+      install_path,
       repo_owner,
       github_repo,
       download_url,
