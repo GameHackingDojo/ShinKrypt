@@ -90,7 +90,7 @@ pub fn settings_ui(window: &gtk::ApplicationWindow, aps: Arc<RwLock<AppState>>, 
     grid_cb.attach(&remove_cb, 0, 1, 1, 1);
   }
 
-  // Smae directory output checkbox
+  // Same directory output checkbox
   {
     let aps_c = aps.clone();
     let same_dir_cb = gtk4::CheckButton::with_label("Same directory output");
@@ -115,13 +115,13 @@ pub fn settings_ui(window: &gtk::ApplicationWindow, aps: Arc<RwLock<AppState>>, 
   let bench_prog_c = bench_prog.clone();
 
   {
-    let available = consts.elevated || (consts.cur_path != consts.install_path);
-    let tooltip = if available { "Test your machine" } else { "Available when run as admin" };
+    // let available = consts.elevated || (consts.cur_path != consts.install_path);
+    // let tooltip = if available { "Test your machine" } else { "Available when run as admin" };
 
     let benchmark_btn = gtk4::Button::with_label("Benchmark 🚝");
     benchmark_btn.set_hexpand(true);
-    benchmark_btn.set_sensitive(available);
-    benchmark_btn.set_tooltip_text(Some(tooltip));
+    // benchmark_btn.set_sensitive(available);
+    benchmark_btn.set_tooltip_text(Some("Test your machine"));
     benchmark_btn.connect_clicked(move |_| {
       GTKhelper::message_box(&window_c, "Please wait", "Benchmarking has started, the progress bar will be filled two times then the results will appear once the test is done.", None);
 
@@ -135,47 +135,47 @@ pub fn settings_ui(window: &gtk::ApplicationWindow, aps: Arc<RwLock<AppState>>, 
       };
     });
 
-    let width = if cfg!(target_os = "windows") { 1 } else { 2 };
-    grid_btn.attach(&benchmark_btn, 0, 0, width, 1);
+    // let width = if cfg!(target_os = "windows") { 1 } else { 2 };
+    grid_btn.attach(&benchmark_btn, 0, 0, 2, 1);
   }
 
-  #[cfg(target_os = "windows")]
-  {
-    let window_c = window.clone();
-    let aps_c = aps.clone();
+  // #[cfg(target_os = "windows")]
+  // {
+  //   let window_c = window.clone();
+  //   let aps_c = aps.clone();
 
-    let tooltip = if consts.elevated { "Install to C:\\ProgramFiles and add to context menu" } else { "Available when run as admin" };
+  //   let tooltip = if consts.elevated { "Install to C:\\ProgramFiles and add to context menu" } else { "Available when run as admin" };
 
-    let install_lbl = "Install ⬇️️";
-    let uninstall_lbl = "Uninstall 🗑️";
+  //   let install_lbl = "Install ⬇️️";
+  //   let uninstall_lbl = "Uninstall 🗑️";
 
-    let install_btn_lbl = if installed(aps.clone()) { uninstall_lbl } else { install_lbl };
+  //   let install_btn_lbl = if installed(aps.clone()) { uninstall_lbl } else { install_lbl };
 
-    let install_btn = gtk4::Button::with_label(install_btn_lbl);
-    install_btn.set_hexpand(true);
-    install_btn.set_sensitive(consts.elevated);
-    install_btn.set_tooltip_text(Some(tooltip));
-    install_btn.connect_clicked(move |btn| {
-      if installed(aps_c.clone()) {
-        uninstall(&window_c, aps_c.clone());
-        rem_reg(&window_c, aps_c.clone());
+  //   let install_btn = gtk4::Button::with_label(install_btn_lbl);
+  //   install_btn.set_hexpand(true);
+  //   install_btn.set_sensitive(consts.elevated);
+  //   install_btn.set_tooltip_text(Some(tooltip));
+  //   install_btn.connect_clicked(move |btn| {
+  //     if installed(aps_c.clone()) {
+  //       uninstall(&window_c, aps_c.clone());
+  //       rem_reg(&window_c, aps_c.clone());
 
-        let install_btn_lbl = if installed(aps_c.clone()) { uninstall_lbl } else { install_lbl };
+  //       let install_btn_lbl = if installed(aps_c.clone()) { uninstall_lbl } else { install_lbl };
 
-        // btn.set_sensitive(false);
-        btn.set_label(install_btn_lbl);
-      } else {
-        install(&window_c, aps_c.clone());
-        add_reg(&window_c, aps_c.clone());
+  //       // btn.set_sensitive(false);
+  //       btn.set_label(install_btn_lbl);
+  //     } else {
+  //       install(&window_c, aps_c.clone());
+  //       add_reg(&window_c, aps_c.clone());
 
-        let install_btn_lbl = if installed(aps_c.clone()) { uninstall_lbl } else { install_lbl };
+  //       let install_btn_lbl = if installed(aps_c.clone()) { uninstall_lbl } else { install_lbl };
 
-        // btn.set_sensitive(false);
-        btn.set_label(install_btn_lbl);
-      }
-    });
-    grid_btn.attach(&install_btn, 1, 0, 1, 1);
-  }
+  //       // btn.set_sensitive(false);
+  //       btn.set_label(install_btn_lbl);
+  //     }
+  //   });
+  //   grid_btn.attach(&install_btn, 1, 0, 1, 1);
+  // }
 
   {
     let window_c = window.clone();
@@ -209,178 +209,178 @@ pub fn settings_ui(window: &gtk::ApplicationWindow, aps: Arc<RwLock<AppState>>, 
   settings_win.present();
 }
 
-pub fn install(window: &gtk4::ApplicationWindow, aps: Arc<RwLock<AppState>>) {
-  let consts = aps.read().consts.clone();
+// pub fn install(window: &gtk4::ApplicationWindow, aps: Arc<RwLock<AppState>>) {
+//   let consts = aps.read().consts.clone();
 
-  let exe_src = consts.cur_path;
-  let install_dir = consts.install_dir;
-  let exe_dst = consts.install_path;
+//   let exe_src = consts.cur_path;
+//   let install_dir = consts.install_dir;
+//   let exe_dst = consts.install_path;
 
-  // Ensure target dir exists
-  std::fs::create_dir_all(&install_dir).unwrap();
-  std::fs::copy(&exe_src, &exe_dst).unwrap();
+//   // Ensure target dir exists
+//   std::fs::create_dir_all(&install_dir).unwrap();
+//   std::fs::copy(&exe_src, &exe_dst).unwrap();
 
-  let settings_src = std::path::PathBuf::from(SETTINGS_FILE);
+//   let settings_src = std::path::PathBuf::from(SETTINGS_FILE);
 
-  if settings_src.exists() {
-    std::fs::copy(settings_src, install_dir.join(SETTINGS_FILE)).unwrap();
-  }
+//   if settings_src.exists() {
+//     std::fs::copy(settings_src, install_dir.join(SETTINGS_FILE)).unwrap();
+//   }
 
-  GTKhelper::message_box(window, "Success", format!("Application installed successfully to:\n{}", exe_dst.display()), None);
-}
+//   GTKhelper::message_box(window, "Success", format!("Application installed successfully to:\n{}", exe_dst.display()), None);
+// }
 
-pub fn uninstall(window: &gtk4::ApplicationWindow, aps: Arc<RwLock<AppState>>) {
-  let consts = aps.read().consts.clone();
+// pub fn uninstall(window: &gtk4::ApplicationWindow, aps: Arc<RwLock<AppState>>) {
+//   let consts = aps.read().consts.clone();
 
-  let exe_src = consts.cur_path;
-  let install_dir = consts.install_dir;
-  let install_path = consts.install_path;
+//   let exe_src = consts.cur_path;
+//   let install_dir = consts.install_dir;
+//   let install_path = consts.install_path;
 
-  let mut is_err = false;
-  let mut error = String::new();
+//   let mut is_err = false;
+//   let mut error = String::new();
 
-  if exe_src != install_path {
-    if let Err(e) = Global::del_path(&install_dir) {
-      error.push_str(&e);
-      error.push(' ');
-      is_err = true;
-    }
-  }
+//   if exe_src != install_path {
+//     if let Err(e) = Global::del_path(&install_dir) {
+//       error.push_str(&e);
+//       error.push(' ');
+//       is_err = true;
+//     }
+//   }
 
-  if is_err {
-    error.insert_str(0, "\nErrors: ");
-  }
+//   if is_err {
+//     error.insert_str(0, "\nErrors: ");
+//   }
 
-  GTKhelper::message_box(window, "Success", format!("Application uninstalled successfully{}", error), None);
-}
+//   GTKhelper::message_box(window, "Success", format!("Application uninstalled successfully{}", error), None);
+// }
 
-fn add_reg(window: &gtk4::ApplicationWindow, aps: Arc<RwLock<AppState>>) {
-  let consts = aps.read().consts.clone();
+// fn add_reg(window: &gtk4::ApplicationWindow, aps: Arc<RwLock<AppState>>) {
+//   let consts = aps.read().consts.clone();
 
-  let exe_src = consts.install_path;
+//   let exe_src = consts.install_path;
 
-  add_ctx_option(OptionType::Files, &exe_src, aps.clone()).unwrap();
-  add_ctx_option(OptionType::Directories, &exe_src, aps.clone()).unwrap();
+//   add_ctx_option(OptionType::Files, &exe_src, aps.clone()).unwrap();
+//   add_ctx_option(OptionType::Directories, &exe_src, aps.clone()).unwrap();
 
-  GTKhelper::message_box(window, "Success", format!("Added context menu option successfully"), None);
-}
+//   GTKhelper::message_box(window, "Success", format!("Added context menu option successfully"), None);
+// }
 
-fn rem_reg(window: &gtk4::ApplicationWindow, aps: Arc<RwLock<AppState>>) {
-  let mut is_err = false;
-  let mut error = String::new();
+// fn rem_reg(window: &gtk4::ApplicationWindow, aps: Arc<RwLock<AppState>>) {
+//   let mut is_err = false;
+//   let mut error = String::new();
 
-  if let Err(e) = rem_ctx_option(OptionType::Files, aps.clone()) {
-    error.push_str(&e);
-    error.push(' ');
-    is_err = true;
-  };
-  if let Err(e) = rem_ctx_option(OptionType::Directories, aps.clone()) {
-    error.push_str(&e);
-    error.push(' ');
-    is_err = true;
-  };
+//   if let Err(e) = rem_ctx_option(OptionType::Files, aps.clone()) {
+//     error.push_str(&e);
+//     error.push(' ');
+//     is_err = true;
+//   };
+//   if let Err(e) = rem_ctx_option(OptionType::Directories, aps.clone()) {
+//     error.push_str(&e);
+//     error.push(' ');
+//     is_err = true;
+//   };
 
-  if is_err {
-    error.insert_str(0, "\nErrors: ");
-  }
+//   if is_err {
+//     error.insert_str(0, "\nErrors: ");
+//   }
 
-  GTKhelper::message_box(window, "Success", format!("Removed context menu option successfully\n{}", error), None);
-}
+//   GTKhelper::message_box(window, "Success", format!("Removed context menu option successfully\n{}", error), None);
+// }
 
-enum OptionType {
-  Files,
-  Directories,
-}
+// enum OptionType {
+//   Files,
+//   Directories,
+// }
 
-impl OptionType {
-  fn to_string(&self) -> String {
-    match self {
-      OptionType::Files => String::from("*"),
-      OptionType::Directories => String::from("Directory"),
-    }
-  }
-}
+// impl OptionType {
+//   fn to_string(&self) -> String {
+//     match self {
+//       OptionType::Files => String::from("*"),
+//       OptionType::Directories => String::from("Directory"),
+//     }
+//   }
+// }
 
-fn add_ctx_option(dst: OptionType, exe_dst: impl AsRef<std::path::Path>, aps: Arc<RwLock<AppState>>) -> Result<(), String> {
-  let consts = aps.read().consts.clone();
+// fn add_ctx_option(dst: OptionType, exe_dst: impl AsRef<std::path::Path>, aps: Arc<RwLock<AppState>>) -> Result<(), String> {
+//   let consts = aps.read().consts.clone();
 
-  // Add registry keys
-  let hkcr = winreg::RegKey::predef(winreg::enums::HKEY_CLASSES_ROOT);
+//   // Add registry keys
+//   let hkcr = winreg::RegKey::predef(winreg::enums::HKEY_CLASSES_ROOT);
 
-  // Create the parent key: *\shell\<command_name>
-  let (key, _) = match hkcr.create_subkey(format!(r#"{}\shell\{}"#, dst.to_string(), consts.app_name)) {
-    Ok(v) => v,
-    Err(e) => return Err(e.to_string()),
-  };
+//   // Create the parent key: *\shell\<command_name>
+//   let (key, _) = match hkcr.create_subkey(format!(r#"{}\shell\{}"#, dst.to_string(), consts.app_name)) {
+//     Ok(v) => v,
+//     Err(e) => return Err(e.to_string()),
+//   };
 
-  // Set the icon here
-  key.set_value("Icon", &format!(r#""{}""#, exe_dst.as_ref().display())).unwrap();
+//   // Set the icon here
+//   key.set_value("Icon", &format!(r#""{}""#, exe_dst.as_ref().display())).unwrap();
 
-  // Now create the command subkey
-  let (command_key, _) = key.create_subkey("command").unwrap();
-  command_key.set_value("", &format!(r#""{}" "%1""#, exe_dst.as_ref().display())).unwrap();
+//   // Now create the command subkey
+//   let (command_key, _) = key.create_subkey("command").unwrap();
+//   command_key.set_value("", &format!(r#""{}" "%1""#, exe_dst.as_ref().display())).unwrap();
 
-  Ok(())
-}
+//   Ok(())
+// }
 
-fn rem_ctx_option(dst: OptionType, aps: Arc<RwLock<AppState>>) -> Result<(), String> {
-  let consts = aps.read().consts.clone();
+// fn rem_ctx_option(dst: OptionType, aps: Arc<RwLock<AppState>>) -> Result<(), String> {
+//   let consts = aps.read().consts.clone();
 
-  // Add registry keys
-  let hkcr = winreg::RegKey::predef(winreg::enums::HKEY_CLASSES_ROOT);
+//   // Add registry keys
+//   let hkcr = winreg::RegKey::predef(winreg::enums::HKEY_CLASSES_ROOT);
 
-  // Create the parent key: *\shell\<command_name>
-  if let Err(e) = hkcr.delete_subkey_all(format!(r#"{}\shell\{}"#, dst.to_string(), consts.app_name)) {
-    return Err(e.to_string());
-  };
+//   // Create the parent key: *\shell\<command_name>
+//   if let Err(e) = hkcr.delete_subkey_all(format!(r#"{}\shell\{}"#, dst.to_string(), consts.app_name)) {
+//     return Err(e.to_string());
+//   };
 
-  Ok(())
-}
+//   Ok(())
+// }
 
-/// bool checks if installed to registry
-fn reg_added(aps: Arc<RwLock<AppState>>) -> bool {
-  let mut installed = false;
-  let consts = aps.read().consts.clone();
+// /// bool checks if installed to registry
+// fn reg_added(aps: Arc<RwLock<AppState>>) -> bool {
+//   let mut installed = false;
+//   let consts = aps.read().consts.clone();
 
-  if let Ok(v) = chk_reg_key(&consts.reg_keys[0]) {
-    installed = v;
-  };
+//   if let Ok(v) = chk_reg_key(&consts.reg_keys[0]) {
+//     installed = v;
+//   };
 
-  if let Ok(v) = chk_reg_key(&consts.reg_keys[1]) {
-    installed = v;
-  };
+//   if let Ok(v) = chk_reg_key(&consts.reg_keys[1]) {
+//     installed = v;
+//   };
 
-  installed
-}
+//   installed
+// }
 
-/// bool checks if installed to Program Files
-fn prog_installed(aps: Arc<RwLock<AppState>>) -> bool {
-  let mut installed = false;
-  let consts = aps.read().consts.clone();
-  let exe_dst_dir = consts.install_dir;
-  let exe_dst = exe_dst_dir.join(&consts.file_name);
+// /// bool checks if installed to Program Files
+// fn prog_installed(aps: Arc<RwLock<AppState>>) -> bool {
+//   let mut installed = false;
+//   let consts = aps.read().consts.clone();
+//   let exe_dst_dir = consts.install_dir;
+//   let exe_dst = exe_dst_dir.join(&consts.file_name);
 
-  if exe_dst.exists() {
-    installed = true;
-  }
+//   if exe_dst.exists() {
+//     installed = true;
+//   }
 
-  installed
-}
+//   installed
+// }
 
-/// bool checks if installed to Program Files and to registry
-fn installed(aps: Arc<RwLock<AppState>>) -> bool { reg_added(aps.clone()) && prog_installed(aps.clone()) }
+// /// bool checks if installed to Program Files and to registry
+// fn installed(aps: Arc<RwLock<AppState>>) -> bool { reg_added(aps.clone()) && prog_installed(aps.clone()) }
 
-fn chk_reg_key(path: impl AsRef<str>) -> Result<bool, std::io::Error> {
-  let hkcr = winreg::RegKey::predef(winreg::enums::HKEY_CLASSES_ROOT);
+// fn chk_reg_key(path: impl AsRef<str>) -> Result<bool, std::io::Error> {
+//   let hkcr = winreg::RegKey::predef(winreg::enums::HKEY_CLASSES_ROOT);
 
-  match hkcr.open_subkey(path.as_ref()) {
-    Ok(_) => Ok(true),
-    Err(e) => {
-      if e.kind() == std::io::ErrorKind::NotFound {
-        Ok(false)
-      } else {
-        Err(e)
-      }
-    }
-  }
-}
+//   match hkcr.open_subkey(path.as_ref()) {
+//     Ok(_) => Ok(true),
+//     Err(e) => {
+//       if e.kind() == std::io::ErrorKind::NotFound {
+//         Ok(false)
+//       } else {
+//         Err(e)
+//       }
+//     }
+//   }
+// }

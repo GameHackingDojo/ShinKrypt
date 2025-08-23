@@ -61,7 +61,7 @@ impl Default for AppConsts {
     let author_ghd = String::from(authors[0].trim());
     let author_ken = String::from(authors[1].trim());
     let cur_path = std::env::current_exe().unwrap();
-    let install_dir = if cfg!(target_os = "windows") { std::path::PathBuf::from(format!(r"C:\Program Files\{}\{}", author_ghd, app_name)) } else { std::path::PathBuf::new() };
+    let install_dir = if cfg!(target_os = "windows") { std::path::PathBuf::from(format!(r"{}\{}\{}", std::env::var("APPDATA").unwrap(), author_ghd, app_name)) } else { std::path::PathBuf::new() };
     let install_path = install_dir.join(&file_name);
     let repo_owner = String::from("GameHackingDojo");
     let github_repo = String::from(env!("CARGO_PKG_REPOSITORY"));
